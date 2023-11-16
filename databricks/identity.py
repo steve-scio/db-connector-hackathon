@@ -17,6 +17,8 @@ import uuid
 
 permissions_api_client = permissions_api.PermissionsApi(API_CLIENT)
 
+opened_groups_memberships = set()
+
 example_users_response = """
 {
   "schemas": [
@@ -86,15 +88,15 @@ def _upload_users(users: List[dict], upload_id: str):
     group_to_memberships = collections.defaultdict(list)
     for user in users:
         primary_email = [email for email in user['emails'] if email['primary']][0]['value']
-        user = DatasourceUserDefinition(
-                name = user['displayName'],
+        user_def = DatasourceUserDefinition(
+                name = user['userName'],
                 # TODO: Confirm whether username is always an email address
                 email = primary_email,
                 user_id = user['id'],
                 is_active = user['active'],
             )
         
-        users_batch.append(user)
+        users_batch.append(user_def)
         for group in user['groups']:
             group_name = group['display']
             groups_batch.append(DatasourceGroupDefinition(
@@ -106,7 +108,7 @@ def _upload_users(users: List[dict], upload_id: str):
     users_request = BulkIndexUsersRequest(
             upload_id = upload_id,
             datasource = DATASOURCE_NAME,
-            groups = users_batch,
+            users = users_batch,
             is_first_page = False,
             is_last_page = False,
             force_restart_upload = False
@@ -122,6 +124,19 @@ def _upload_users(users: List[dict], upload_id: str):
     )
     permissions_api_client.bulkindexgroups_post(groups_request)
     for k, v in group_to_memberships.items():
+        if k not in opened_groups_memberships:
+            opened_groups_memberships.add(k)
+            members_request =  BulkIndexMembershipsRequest(
+                upload_id = upload_id,
+                datasource = DATASOURCE_NAME,
+                memberships = [],
+                is_first_page = True,
+                is_last_page = False,
+                force_restart_upload = True,
+                group = k
+            )
+            permissions_api_client.bulkindexmemberships_post(members_request)
+
         members_request =  BulkIndexMembershipsRequest(
                 upload_id = upload_id,
                 datasource = DATASOURCE_NAME,
@@ -138,6 +153,28 @@ def _upload_users(users: List[dict], upload_id: str):
 def crawl_users():
     count = 100
     start_index = 1
+    upload_id = str(uuid.uuid4())
+
+    users_request = BulkIndexUsersRequest(
+            upload_id = upload_id,
+            datasource = DATASOURCE_NAME,
+            users = [],
+            is_first_page = True,
+            is_last_page = False,
+            force_restart_upload = True
+    )
+    permissions_api_client.bulkindexusers_post(users_request)
+    groups_request = BulkIndexGroupsRequest(
+            upload_id = upload_id,
+            datasource = DATASOURCE_NAME,
+            groups = [],
+            is_first_page = True,
+            is_last_page = False,
+            force_restart_upload = True
+    )
+    permissions_api_client.bulkindexgroups_post(groups_request)
+
+    # TODO: Track memberships and finalize
 
     while True:
         params = {
@@ -145,19 +182,50 @@ def crawl_users():
             'count': count
         }
         response = send_request('/api/2.0/preview/scim/v2/Users', params=params)
-        users = response['resources']
+        users = response['Resources']
 
         # Generate uuid for upload id
-        _upload_users(users, str(uuid.uuid4()))
+        _upload_users(users, upload_id)
 
         if len(users) < count:
             logging.info(f'Unfilled user page {start_index}, received: {len(users)}, count: {count}. Finishing crawl')
             break
         
         start_index += count
-            
+    
+    users_request = BulkIndexUsersRequest(
+            upload_id = upload_id,
+            datasource = DATASOURCE_NAME,
+            users = [],
+            is_first_page = False,
+            is_last_page = True,
+            force_restart_upload = False
+    )
+    permissions_api_client.bulkindexusers_post(users_request)
+    groups_request = BulkIndexGroupsRequest(
+            upload_id = upload_id,
+            datasource = DATASOURCE_NAME,
+            groups = [],
+            is_first_page = False,
+            is_last_page = True,
+            force_restart_upload = False
+    )
+    permissions_api_client.bulkindexgroups_post(groups_request)
 
-        
+    for k in opened_groups_memberships:
+            members_request =  BulkIndexMembershipsRequest(
+                upload_id = upload_id,
+                datasource = DATASOURCE_NAME,
+                memberships = [],
+                is_first_page = False,
+                is_last_page = True,
+                force_restart_upload = False,
+                group = k
+            )
+            permissions_api_client.bulkindexmemberships_post(members_request)
+
+if __name__ == "__main__":
+    crawl_users()
 
     
 
