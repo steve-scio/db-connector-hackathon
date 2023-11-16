@@ -42,11 +42,40 @@ def fetch_all_tables(schema):
         return example_tables
 
 
-def get_document_definition(table):
+def fetch_permissions(table):
+    return constants.send_request(f'/api/2.1/unity-catalog/permissions/table/{table["full_name"]}')
+
+def get_comment_definition(table) -> List[CommentDefinition]:
+    comments = []
+    for column in table["columns"]:
+        comments.append(CommentDefinition(
+            id=column["name"],
+            content=ContentDefinition(
+                mime_type="text/plain",
+                text_content=column["name"] + " " + column.get("comment", ""),
+            ),
+        ))
+    return comments
+
+def get_document_definition(table, perms):
     """Construct document definition from Wikipedia article"""
     title = table["name"]
     url = f'https://e2-dogfood-ext-glean-staging-1.staging.cloud.databricks.com/explore/data/{table["catalog_name"]}/{table["schema_name"]}/{table["name"]}'
     docid = str(table["table_id"])
+    print(perms)
+    if 'privilege_assignments' in perms:
+        allowed_users = []
+        allowed_groups = []
+        for assignment in perms["privilege_assignments"]:
+            principal = assignment["principal"]
+            if '@' in principal:
+                allowed_users.append(UserReferenceDefinition(email=principal))
+            else:
+                allowed_groups.append(principal)
+        final_perms = DocumentPermissionsDefinition(allowed_groups=allowed_groups, allowed_users=allowed_users)
+    else:
+        final_perms = DocumentPermissionsDefinition(allow_anonymous_access=True)
+    print(final_perms)
     return DocumentDefinition(
         datasource=constants.DATASOURCE_NAME,
         object_type="Table",
@@ -63,8 +92,12 @@ def get_document_definition(table):
         ),
         body=ContentDefinition(
             mime_type="text/plain",
-            text_content=""),
-        permissions=DocumentPermissionsDefinition(allow_anonymous_access=True)
+            text_content=table.get("comment", "")
+        ),
+        container=table["schema_name"],
+        containerObjectType="schema",
+        comments=get_comment_definition(table),
+        permissions=final_perms,
     )
 
 
@@ -102,16 +135,20 @@ def crawl_tables(upload_id: str):
             tables = fetch_all_tables(schema)
             docs = []
             for table in tables.get("tables", []):
-                doc = get_document_definition(table)
+                perms = fetch_permissions(table)
+                doc = get_document_definition(table, perms)
+                print(doc)
                 docs.append(doc)
-            try:
-                issue_bulk_index_documents_request(
-                    upload_id=upload_id,
-                    datasource=constants.DATASOURCE_NAME,
-                    documents=docs,
-                    is_first_page=False,
-                    is_last_page=False)
-            except indexing_api.ApiException as e:
-                print("Exception while bulk indexing documents: %s\n" % e.body)
-                exit(1)
+            # try:
+            #     issue_bulk_index_documents_request(
+            #         upload_id=upload_id,
+            #         datasource=constants.DATASOURCE_NAME,
+            #         documents=docs,
+            #         is_first_page=False,
+            #         is_last_page=False)
+            # except indexing_api.ApiException as e:
+            #     print("Exception while bulk indexing documents: %s\n" % e.body)
+            #     exit(1)
 
+
+crawl_tables('test')
