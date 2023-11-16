@@ -103,7 +103,8 @@ def _upload_users(users: List[dict], upload_id: str):
                 name = group_name
             ))
             group_to_memberships[group_name].append(DatasourceBulkMembershipDefinition(
-                member_user_id = user['id'],
+                # TODO: Confirm on glean api whether member id should be email or user_id. From the sql values looks like it's email
+                member_user_id = primary_email,
             ))
     users_request = BulkIndexUsersRequest(
             upload_id = upload_id,
