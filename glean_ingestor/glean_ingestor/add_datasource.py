@@ -2,7 +2,7 @@ import glean_indexing_api_client as indexing_api
 from glean_indexing_api_client.api import datasources_api
 from glean_indexing_api_client.model.custom_datasource_config import CustomDatasourceConfig
 from glean_indexing_api_client.model.object_definition import ObjectDefinition
-from constants import DASHBOARD_OBJECT_NAME, API_CLIENT
+from .constants import DASHBOARD_OBJECT_NAME, API_CLIENT
 
 def add_datasource(datasource_name: str):
     """

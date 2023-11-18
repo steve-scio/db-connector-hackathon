@@ -7,10 +7,9 @@ from glean_indexing_api_client.model.content_definition import ContentDefinition
 from glean_indexing_api_client.model.comment_definition import CommentDefinition
 from glean_indexing_api_client.model.document_permissions_definition import DocumentPermissionsDefinition
 import json
-from constants import API_CLIENT
+from .constants import API_CLIENT, send_request, DATASOURCE_NAME
 from typing import List
 
-import constants
 
 PAGE_SIZE = 10
 FETCH = True
@@ -18,7 +17,7 @@ FETCH = True
 
 def fetch_all_catalogs():
     if FETCH:
-        return constants.send_request("/api/2.1/unity-catalog/catalogs")
+        return send_request("/api/2.1/unity-catalog/catalogs")
     else:
         with open('testdata/catalog.json') as f:
             example_catalog = json.load(f)
@@ -27,7 +26,7 @@ def fetch_all_catalogs():
 
 def fetch_all_schemas(catalog):
     if FETCH:
-        return constants.send_request("/api/2.1/unity-catalog/schemas", params={"catalog_name": catalog["name"]})
+        return send_request("/api/2.1/unity-catalog/schemas", params={"catalog_name": catalog["name"]})
     else:
         with open('testdata/schemas.json') as f:
             example_schemas = json.load(f)
@@ -36,7 +35,7 @@ def fetch_all_schemas(catalog):
 
 def fetch_all_tables(schema):
     if FETCH:
-        return constants.send_request("/api/2.1/unity-catalog/tables",
+        return send_request("/api/2.1/unity-catalog/tables",
                                       params={"catalog_name": schema["catalog_name"], "schema_name": schema["name"]})
     else:
         with open('testdata/tables.json') as f:
@@ -62,7 +61,7 @@ def get_document_definition(table):
     url = f'https://e2-dogfood-ext-glean-staging-1.staging.cloud.databricks.com/explore/data/{table["catalog_name"]}/{table["schema_name"]}/{table["name"]}'
     docid = str(table["table_id"])
     return DocumentDefinition(
-        datasource=constants.DATASOURCE_NAME,
+        datasource=DATASOURCE_NAME,
         object_type="Table",
         id=docid,
         title=title,
@@ -125,7 +124,7 @@ def crawl_tables(upload_id: str):
             try:
                 issue_bulk_index_documents_request(
                     upload_id=upload_id,
-                    datasource=constants.DATASOURCE_NAME,
+                    datasource=DATASOURCE_NAME,
                     documents=docs,
                     is_first_page=False,
                     is_last_page=False)

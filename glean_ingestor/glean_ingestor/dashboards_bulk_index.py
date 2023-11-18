@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 logging.getLogger().setLevel(logging.INFO)
 from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from constants import send_request, DATASOURCE_NAME, DASHBOARD_OBJECT_NAME, BASE_URL, API_CLIENT
+from .constants import send_request, DATASOURCE_NAME, DASHBOARD_OBJECT_NAME, BASE_URL, API_CLIENT
 
 PAGE_SIZE = 10
 

@@ -1,0 +1,15 @@
+# Python cache
+__pycache__
+
+# Pythom virtual Environment
+__db_hackathon_venv__
+
+.DS_Store
+
+.vscode/
+
+# Environment files
+.env*
+
+# Test files
+test*

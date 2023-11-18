@@ -1,6 +1,7 @@
 import glean_indexing_api_client as indexing_api
 import os
 import requests
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,9 +10,11 @@ DATASOURCE_NAME = "lakehousehackathon"
 DASHBOARD_OBJECT_NAME = "Dashboard"
 NOTEBOOK_OBJECT_NAME = "Notebook"
 
+print(os.getenv("POETRY_GLEAN_API_KEY"))
+
 _configuration = indexing_api.Configuration(
     host="https://databricks-be.glean.com/api/index/v1",
-    access_token=os.getenv("GLEAN_API_KEY"))
+    access_token=sys.argv[1])
 
 BASE_URL = "https://e2-dogfood-ext-glean-staging-1.staging.cloud.databricks.com"
 API_CLIENT = indexing_api.ApiClient(_configuration)
@@ -21,7 +24,7 @@ def send_request(endpoint: str, params=None, data=None, method='GET'):
     headers = {}
 
     # Add bearer authorization if token is provided
-    headers['Authorization'] = 'Bearer ' + str(os.getenv('DATABRICKS_TOKEN'))
+    headers['Authorization'] = 'Bearer ' + str(sys.argv[2])
 
     url = BASE_URL.removesuffix('/') + '/' + endpoint.removeprefix('/')
 

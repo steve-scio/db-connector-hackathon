@@ -1,12 +1,13 @@
 import uuid
 
-from add_datasource import add_datasource
-from dashboards_bulk_index import crawl_dashboards
-from tables_bulk_index import crawl_tables
+from .add_datasource import add_datasource
+from .dashboards_bulk_index import crawl_dashboards
+from .tables_bulk_index import crawl_tables
+from .notebooks import crawl_notebooks
 from glean_indexing_api_client.api import documents_api
 import glean_indexing_api_client as indexing_api
 from glean_indexing_api_client.model.bulk_index_documents_request import BulkIndexDocumentsRequest
-from constants import API_CLIENT, DATASOURCE_NAME
+from .constants import API_CLIENT, DATASOURCE_NAME
 
 def main():
     add_datasource(DATASOURCE_NAME)
@@ -24,7 +25,7 @@ def main():
             is_last_page=False,
             force_restart_upload=True
         ))
-
+    crawl_notebooks(upload_id=upload_id)
     crawl_dashboards(upload_id=upload_id)
     crawl_tables(upload_id=upload_id)
     
@@ -39,10 +40,7 @@ def main():
         is_first_page=False,
         is_last_page=True,
         force_restart_upload=False
-    ))                     
-
-
-
+    ))
 
 if __name__ == "__main__":
     main()
