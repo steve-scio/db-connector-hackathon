@@ -1,7 +1,7 @@
 import glean_indexing_api_client
 from glean_indexing_api_client.api import permissions_api
 from glean_indexing_api_client.model.greenlist_users_request import GreenlistUsersRequest
-from constants import DATASOURCE_NAME, API_CLIENT
+from .constants import DATASOURCE_NAME, API_CLIENT
 
 def main(email: str):
     permission_api = permissions_api.PermissionsApi(API_CLIENT)
